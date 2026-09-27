@@ -63,10 +63,11 @@ export async function action({ request }: Route.ActionArgs) {
     return new Response("Missing required fields", { status: 400 });
   }
 
-  // Auto-create workspace if first sync or ID missing
+  // Workspace ID is always provided by the client (derived from hostname+rootPath).
+  // Only create a new workspace if the ID is genuinely unknown to this server instance.
   let ws = workspaceId ? getWorkspace(workspaceId) : undefined;
   if (!ws) {
-    workspaceId = uuidv4();
+    workspaceId = workspaceId ?? uuidv4();
     ws = createWorkspace(workspaceId, workspaceName, rootPath);
   }
 

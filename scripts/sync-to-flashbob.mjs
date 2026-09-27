@@ -22,6 +22,8 @@
 import { readFileSync, statSync, readdirSync } from "node:fs";
 import { join, relative, basename } from "node:path";
 import { parseArgs } from "node:util";
+import { createHash } from "node:crypto";
+import { hostname } from "node:os";
 
 // ---------------------------------------------------------------------------
 // CLI args
@@ -40,7 +42,15 @@ const { values: args } = parseArgs({
 const FLASHBOB_URL   = args.url.replace(/\/$/, "");
 const WORKSPACE_ROOT = args.root;
 const WORKSPACE_NAME = args.name ?? basename(WORKSPACE_ROOT);
-const WORKSPACE_ID   = args.id ?? undefined;
+
+// Derive a stable, collision-free ID from machine hostname + root path so
+// re-running the script without --id always maps to the same workspace,
+// while two different machines with the same path stay separate.
+const WORKSPACE_ID   = args.id ?? createHash("sha1")
+  .update(hostname())
+  .update(WORKSPACE_ROOT)
+  .digest("hex")
+  .slice(0, 36); // same length as a UUID for UI consistency
 
 // ---------------------------------------------------------------------------
 // Patterns that are never useful to mirror

@@ -1,32 +1,23 @@
 import type { Route } from "./+types/home";
-import { Link, useLoaderData, useFetcher } from "react-router";
+import { Link, useLoaderData } from "react-router";
 import { getAllWorkspaces } from "~/lib/store.server";
 import { Badge } from "~/components/ui/badge";
-import { Button } from "~/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
-import { Separator } from "~/components/ui/separator";
 import {
   FolderOpen,
-  Plug,
   Files,
   Clock,
   ArrowRight,
   Copy,
   CheckCheck,
-  Zap,
-  Link2,
+  Plug,
   CloudUpload,
 } from "lucide-react";
 import { useState } from "react";
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "FlashBob — Live Workspace Mirror" },
-    {
-      name: "description",
-      content:
-        "Mirror your IBM Bob workspace to the cloud and expose it via MCP for smarter, Jev-powered context selection.",
-    },
+    { title: "FlashBob" },
+    { name: "description", content: "Live workspace mirror via MCP." },
   ];
 }
 
@@ -41,7 +32,6 @@ export async function loader({ request }: Route.LoaderArgs) {
   }));
 
   const baseUrl = new URL(request.url).origin;
-
   return { workspaces, baseUrl };
 }
 
@@ -55,18 +45,18 @@ function CopyButton({ text }: { text: string }) {
   return (
     <button
       onClick={handle}
-      className="text-muted-foreground hover:text-foreground transition-colors"
+      className="text-muted-foreground hover:text-foreground transition-colors shrink-0"
       aria-label="Copy"
     >
-      {copied ? <CheckCheck size={14} /> : <Copy size={14} />}
+      {copied ? <CheckCheck size={13} /> : <Copy size={13} />}
     </button>
   );
 }
 
 function CodeLine({ value }: { value: string }) {
   return (
-    <div className="flex items-center gap-2 font-mono text-xs bg-muted rounded px-3 py-2 group">
-      <span className="flex-1 break-all text-foreground">{value}</span>
+    <div className="flex items-center gap-2 font-mono text-xs bg-muted/60 border border-border rounded px-3 py-2">
+      <span className="flex-1 break-all text-foreground/80 select-all">{value}</span>
       <CopyButton text={value} />
     </div>
   );
@@ -87,235 +77,131 @@ export default function Home() {
   const mcpUrl = `${baseUrl}/mcp`;
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border">
-        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <Zap size={16} className="text-primary-foreground" />
-            </div>
-            <div>
-              <h1 className="text-sm font-semibold tracking-tight">FlashBob</h1>
-              <p className="text-xs text-muted-foreground">Live Workspace Mirror</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-xs gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />
-              MCP Live
-            </Badge>
-          </div>
+    <div className="h-screen flex flex-col bg-background overflow-hidden">
+      {/* Top bar */}
+      <header className="h-11 shrink-0 border-b border-border bg-card flex items-center px-4 gap-3">
+        <img src="/flashbob-icon.png" alt="FlashBob" className="w-5 h-5 object-contain" />
+        <span className="text-sm font-semibold tracking-tight">FlashBob</span>
+        <span className="text-muted-foreground text-xs hidden sm:block">Live Workspace Mirror</span>
+        <div className="ml-auto">
+          <Badge className="text-xs gap-1.5 bg-emerald-500/15 text-emerald-700 border-emerald-300 hover:bg-emerald-500/20">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse" />
+            MCP Live
+          </Badge>
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-6 py-10 space-y-10">
-        {/* Hero */}
-        <div className="space-y-3">
-          <h2 className="text-2xl font-semibold tracking-tight">
-            Workspace Mirrors
-          </h2>
-          <p className="text-muted-foreground max-w-2xl">
-            Link a folder open in IBM Bob to sync its files here live. Your agent connects
-            via MCP and uses{" "}
-            <span className="font-medium text-foreground">Jev</span> to select
-            only the relevant context — keeping execution tokens free.
-          </p>
-        </div>
-
-        {/* How it works steps */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {[
-            {
-              icon: <Link2 size={18} />,
-              step: "1",
-              title: "Link Folder",
-              desc: "Point the FlashBob extension at your open workspace. It sends a file snapshot to this app.",
-            },
-            {
-              icon: <CloudUpload size={18} />,
-              step: "2",
-              title: "Live Sync",
-              desc: "Every file save in IBM Bob streams a delta patch here. Your mirror stays current in real time.",
-            },
-            {
-              icon: <Plug size={18} />,
-              step: "3",
-              title: "Connect MCP",
-              desc: "Add the MCP URL to Bob. The agent calls get_relevant_files and Jev selects the right context.",
-            },
-          ].map(({ icon, step, title, desc }) => (
-            <div
-              key={step}
-              className="border border-border rounded-xl p-5 space-y-3 bg-card"
-            >
-              <div className="flex items-center gap-2">
-                <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center">
-                  {step}
-                </span>
-                <span className="text-muted-foreground">{icon}</span>
-              </div>
-              <div>
-                <p className="font-medium text-sm">{title}</p>
-                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{desc}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <Separator />
-
-        {/* Connection details */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm flex items-center gap-2">
-                <CloudUpload size={15} />
-                Extension Sync Endpoint
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Configure this URL in the FlashBob IBM Bob extension settings.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <CodeLine value={syncUrl} />
-              <p className="text-xs text-muted-foreground">
-                <span className="font-medium text-foreground">POST</span> — initial snapshot &amp; delta patches
-                <br />
-                <span className="font-medium text-foreground">GET</span> — list all linked workspaces
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm flex items-center gap-2">
-                <Plug size={15} />
-                MCP Server URL
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Add this to your IBM Bob MCP configuration to connect the agent.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <CodeLine value={mcpUrl} />
-              <div className="text-xs text-muted-foreground space-y-1">
-                <p>Available tools:</p>
-                <ul className="list-disc list-inside space-y-0.5 pl-1">
-                  <li><code className="text-foreground">list_workspaces</code></li>
-                  <li><code className="text-foreground">get_relevant_files</code> — powered by Jev</li>
-                  <li><code className="text-foreground">get_file_content</code></li>
-                  <li><code className="text-foreground">list_files</code></li>
-                  <li><code className="text-foreground">get_workspace_summary</code></li>
-                </ul>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <Separator />
-
-        {/* Workspace list */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="font-semibold text-sm">
-              Linked Workspaces
-              {workspaces.length > 0 && (
-                <Badge variant="secondary" className="ml-2 text-xs">
-                  {workspaces.length}
-                </Badge>
-              )}
-            </h3>
+      {/* Body — two-column layout */}
+      <div className="flex flex-1 min-h-0">
+        {/* Left panel: workspaces */}
+        <div className="flex flex-col w-full max-w-sm shrink-0 border-r border-border bg-card/40 overflow-y-auto">
+          <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Workspaces
+            </span>
+            {workspaces.length > 0 && (
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                {workspaces.length}
+              </Badge>
+            )}
           </div>
 
           {workspaces.length === 0 ? (
-            <div className="border border-dashed border-border rounded-xl p-12 text-center space-y-3">
-              <FolderOpen size={32} className="mx-auto text-muted-foreground" />
-              <div>
-                <p className="font-medium text-sm">No workspaces linked yet</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Install the FlashBob extension in IBM Bob and link a folder to see it here.
-                </p>
-              </div>
+            <div className="flex flex-col items-center justify-center flex-1 gap-2 px-6 py-12 text-center">
+              <FolderOpen size={28} className="text-muted-foreground/50" />
+              <p className="text-sm font-medium">No workspaces linked</p>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Install the FlashBob extension in IBM Bob and link a folder to see it here.
+              </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="divide-y divide-border">
               {workspaces.map((ws) => (
                 <Link
                   key={ws.id}
                   to={`/workspace/${ws.id}`}
-                  className="group border border-border rounded-xl p-5 hover:border-primary/50 hover:bg-accent/30 transition-all space-y-4"
+                  className="flex items-center gap-3 px-4 py-3 hover:bg-primary/5 group transition-colors"
                 >
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <FolderOpen
-                        size={16}
-                        className="text-muted-foreground shrink-0"
-                      />
-                      <div className="min-w-0">
-                        <p className="font-medium text-sm truncate">{ws.name}</p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {ws.rootPath}
-                        </p>
-                      </div>
+                  <FolderOpen size={15} className="text-primary shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium truncate">{ws.name}</p>
+                    <p className="text-xs text-muted-foreground truncate">{ws.rootPath}</p>
+                    <div className="flex items-center gap-3 mt-1 text-[10px] text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <Files size={10} />
+                        {ws.fileCount} files
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Clock size={10} />
+                        {timeAgo(ws.lastSync)}
+                      </span>
                     </div>
-                    <ArrowRight
-                      size={14}
-                      className="text-muted-foreground group-hover:text-foreground transition-colors shrink-0 mt-0.5"
-                    />
                   </div>
-                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <Files size={12} />
-                      {ws.fileCount} files
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Clock size={12} />
-                      synced {timeAgo(ws.lastSync)}
-                    </span>
-                  </div>
+                  <ArrowRight size={13} className="text-muted-foreground/40 group-hover:text-foreground transition-colors shrink-0" />
                 </Link>
               ))}
             </div>
           )}
         </div>
 
-        {/* Bob MCP config snippet */}
-        <Card className="bg-muted/40">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm">IBM Bob MCP Configuration</CardTitle>
-            <CardDescription className="text-xs">
-              Add this block to your <code>.bob/mcp.json</code> or VS Code{" "}
-              <code>settings.json</code> under{" "}
-              <code>bob.mcpServers</code>.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="relative">
-              <pre className="text-xs bg-background border border-border rounded-lg p-4 overflow-x-auto text-foreground leading-relaxed">
-{`{
+        {/* Right panel: connection details */}
+        <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
+          <div>
+            <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Endpoints</h2>
+            <div className="space-y-3">
+              <div className="rounded-lg border border-border bg-card p-4 space-y-2">
+                <div className="flex items-center gap-2 text-xs font-medium">
+                  <CloudUpload size={13} className="text-primary" />
+                  Extension Sync
+                </div>
+                <p className="text-[11px] text-muted-foreground">Configure this URL in the FlashBob IBM Bob extension settings.</p>
+                <CodeLine value={syncUrl} />
+                <p className="text-[10px] text-muted-foreground">
+                  <span className="font-medium text-foreground">POST</span> — snapshot &amp; delta patches ·{" "}
+                  <span className="font-medium text-foreground">GET</span> — list workspaces
+                </p>
+              </div>
+
+              <div className="rounded-lg border border-border bg-card p-4 space-y-2">
+                <div className="flex items-center gap-2 text-xs font-medium">
+                  <Plug size={13} className="text-violet-600" />
+                  MCP Server
+                </div>
+                <p className="text-[11px] text-muted-foreground">Add this to your IBM Bob MCP configuration to connect the agent.</p>
+                <CodeLine value={mcpUrl} />
+                <div className="text-[10px] text-muted-foreground space-y-0.5">
+                  <p className="font-medium text-foreground">Available tools:</p>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {["list_workspaces", "get_relevant_files", "get_file_content", "list_files", "get_workspace_summary"].map((t) => (
+                      <code key={t} className="bg-muted px-1.5 py-0.5 rounded text-[10px]">{t}</code>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Bob MCP Config</h2>
+            <div className="rounded-lg border border-border bg-card p-4 space-y-2">
+              <p className="text-[11px] text-muted-foreground">
+                Add this to <code className="bg-muted px-1 rounded">.bob/mcp.json</code> or <code className="bg-muted px-1 rounded">bob.mcpServers</code> in your settings.
+              </p>
+              <div className="relative">
+                <pre className="text-xs bg-muted/50 border border-border rounded p-3 overflow-x-auto leading-relaxed">{`{
   "flashbob": {
     "url": "${mcpUrl}",
     "transport": "streamable-http"
   }
-}`}
-              </pre>
-              <div className="absolute top-3 right-3">
-                <CopyButton
-                  text={`{\n  "flashbob": {\n    "url": "${mcpUrl}",\n    "transport": "streamable-http"\n  }\n}`}
-                />
+}`}</pre>
+                <div className="absolute top-2.5 right-2.5">
+                  <CopyButton text={`{\n  "flashbob": {\n    "url": "${mcpUrl}",\n    "transport": "streamable-http"\n  }\n}`} />
+                </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
-      </main>
-
-      <footer className="border-t border-border mt-16">
-        <div className="max-w-5xl mx-auto px-6 py-4 text-xs text-muted-foreground flex items-center justify-between">
-          <span>FlashBob — powered by Jev · TypeSafe · OpenRouter</span>
-          <span>MCP Streamable HTTP</span>
+          </div>
         </div>
-      </footer>
+      </div>
     </div>
   );
 }

@@ -2,15 +2,15 @@ import type { Route } from "./+types/workspace";
 import { Link, useLoaderData, useRevalidator } from "react-router";
 import { getWorkspace } from "~/lib/store.server";
 import { Badge } from "~/components/ui/badge";
-import { Separator } from "~/components/ui/separator";
 import {
   FolderOpen,
   File,
   ArrowLeft,
   Clock,
-  Zap,
+  Files,
   RefreshCw,
   ChevronRight,
+  Database,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
@@ -27,7 +27,6 @@ export async function loader({ params }: Route.LoaderArgs) {
     throw new Response("Workspace not found", { status: 404 });
   }
 
-  // Build file tree
   const files = Array.from(ws.files.values())
     .map((f) => ({
       path: f.path,
@@ -37,7 +36,6 @@ export async function loader({ params }: Route.LoaderArgs) {
     }))
     .sort((a, b) => a.path.localeCompare(b.path));
 
-  // Compute directory structure
   const dirs = new Set<string>();
   for (const f of files) {
     const parts = f.path.split("/");
@@ -93,7 +91,6 @@ function formatSize(chars: number): string {
   return `${(chars / 1024).toFixed(1)}KB`;
 }
 
-/** Group files by top-level directory for the tree view */
 function groupByDir(files: { path: string; language: string; size: number; mtime: number }[]) {
   const groups: Record<string, typeof files> = { "(root)": [] };
   for (const f of files) {
@@ -106,7 +103,6 @@ function groupByDir(files: { path: string; language: string; size: number; mtime
       groups[dir].push(f);
     }
   }
-  // Remove empty root group
   if (groups["(root)"].length === 0) delete groups["(root)"];
   return groups;
 }
@@ -117,7 +113,6 @@ export default function WorkspacePage() {
   const [syncFlash, setSyncFlash] = useState(false);
   const eventSourceRef = useRef<EventSource | null>(null);
 
-  // Live SSE subscription for file change events
   useEffect(() => {
     const es = new EventSource(`/api/sync/stream?workspaceId=${workspace.id}`);
     eventSourceRef.current = es;
@@ -145,147 +140,106 @@ export default function WorkspacePage() {
     a === "(root)" ? -1 : b === "(root)" ? 1 : a.localeCompare(b),
   );
 
+  const totalSize = files.reduce((a, f) => a + f.size, 0);
+
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border">
-        <div className="max-w-5xl mx-auto px-6 py-4">
-          <div className="flex items-center gap-3 mb-1">
-            <Link
-              to="/"
-              className="text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <ArrowLeft size={16} />
-            </Link>
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-primary rounded flex items-center justify-center">
-                <Zap size={12} className="text-primary-foreground" />
-              </div>
-              <span className="text-xs text-muted-foreground">FlashBob</span>
-            </div>
-            <ChevronRight size={12} className="text-muted-foreground" />
-            <span className="text-sm font-medium">{workspace.name}</span>
-          </div>
-          <div className="flex items-center gap-3 mt-3">
-            <p className="text-xs text-muted-foreground truncate flex-1">
-              {workspace.rootPath}
-            </p>
-            <div className="flex items-center gap-2 shrink-0">
-              <Badge
-                variant="outline"
-                className={`text-xs gap-1 transition-colors ${syncFlash ? "border-green-500 text-green-600" : ""}`}
-              >
-                <span
-                  className={`w-1.5 h-1.5 rounded-full inline-block transition-colors ${syncFlash ? "bg-green-400" : "bg-green-500"}`}
-                />
-                {syncFlash ? "Syncing…" : "Live"}
-              </Badge>
-              <span className="text-xs text-muted-foreground flex items-center gap-1">
-                <RefreshCw size={10} />
-                {timeAgo(workspace.lastSync)}
-              </span>
-            </div>
-          </div>
+    <div className="h-screen flex flex-col bg-background overflow-hidden">
+      {/* Top bar */}
+      <header className="h-11 shrink-0 border-b border-border bg-card flex items-center px-4 gap-2">
+        <Link to="/" className="text-muted-foreground hover:text-foreground transition-colors mr-1">
+          <ArrowLeft size={15} />
+        </Link>
+        <img src="/flashbob-icon.png" alt="FlashBob" className="w-4 h-4 object-contain" />
+        <Link to="/" className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+          FlashBob
+        </Link>
+        <ChevronRight size={11} className="text-muted-foreground/40" />
+        <span className="text-xs font-medium text-foreground truncate">{workspace.name}</span>
+        <div className="ml-auto flex items-center gap-3">
+          <span className="text-[10px] text-muted-foreground hidden sm:block truncate max-w-[260px]">
+            {workspace.rootPath}
+          </span>
+          <Badge
+            className={`text-xs gap-1.5 transition-colors ${
+              syncFlash
+                ? "bg-amber-500/15 text-amber-700 border-amber-300"
+                : "bg-emerald-500/15 text-emerald-700 border-emerald-300"
+            }`}
+          >
+            <span
+              className={`w-1.5 h-1.5 rounded-full inline-block transition-colors ${syncFlash ? "bg-amber-400 animate-pulse" : "bg-emerald-500 animate-pulse"}`}
+            />
+            {syncFlash ? "Syncing…" : "Live"}
+          </Badge>
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-6 py-8 space-y-8">
-        {/* Stats row */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          {[
-            { label: "Files", value: workspace.fileCount },
-            { label: "Directories", value: dirs.length },
-            {
-              label: "Total Size",
-              value: formatSize(files.reduce((a, f) => a + f.size, 0)),
-            },
-            {
-              label: "Last Sync",
-              value: timeAgo(workspace.lastSync),
-            },
-          ].map(({ label, value }) => (
-            <div
-              key={label}
-              className="border border-border rounded-lg p-4 bg-card text-center"
-            >
-              <p className="text-lg font-semibold">{value}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
-            </div>
-          ))}
-        </div>
+      {/* Stats bar */}
+      <div className="shrink-0 border-b border-border bg-card/30 flex items-center gap-0 divide-x divide-border overflow-x-auto">
+        {[
+          { icon: <Files size={11} />, label: "Files", value: workspace.fileCount },
+          { icon: <FolderOpen size={11} />, label: "Dirs", value: dirs.length },
+          { icon: <Database size={11} />, label: "Size", value: formatSize(totalSize) },
+          {
+            icon: <RefreshCw size={11} />,
+            label: "Synced",
+            value: timeAgo(workspace.lastSync),
+          },
+        ].map(({ icon, label, value }) => (
+          <div key={label} className="flex items-center gap-1.5 px-4 py-2 text-xs text-muted-foreground shrink-0">
+            <span className="text-muted-foreground/60">{icon}</span>
+            <span className="text-foreground font-medium">{value}</span>
+            <span>{label}</span>
+          </div>
+        ))}
+      </div>
 
-        <Separator />
-
-        {/* File tree */}
-        <div className="space-y-4">
-          <h3 className="text-sm font-semibold">Files</h3>
-
-          {files.length === 0 ? (
-            <div className="border border-dashed border-border rounded-xl p-12 text-center space-y-3">
-              <FolderOpen size={28} className="mx-auto text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">
-                No files synced yet. Make sure the extension is running.
-              </p>
-            </div>
-          ) : (
-            <div className="border border-border rounded-xl overflow-hidden divide-y divide-border">
-              {dirs.map((dir) => (
-                <div key={dir}>
-                  {dir !== "(root)" && (
-                    <div className="flex items-center gap-2 px-4 py-2 bg-muted/50 text-xs text-muted-foreground font-medium">
-                      <FolderOpen size={12} />
-                      {dir}
-                      <span className="ml-auto text-[10px]">
-                        {groups[dir].length} files
+      {/* File tree */}
+      <div className="flex-1 overflow-y-auto">
+        {files.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full gap-2 text-center px-6">
+            <FolderOpen size={28} className="text-muted-foreground/40" />
+            <p className="text-sm text-muted-foreground">No files synced yet. Make sure the extension is running.</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-border">
+            {dirs.map((dir) => (
+              <div key={dir}>
+                {dir !== "(root)" && (
+                  <div className="flex items-center gap-2 px-4 py-1.5 bg-muted/30 text-xs text-muted-foreground font-medium sticky top-0">
+                    <FolderOpen size={11} className="text-primary/60" />
+                    {dir}
+                    <span className="ml-auto text-[10px] text-muted-foreground/60">
+                      {groups[dir].length} files
+                    </span>
+                  </div>
+                )}
+                {groups[dir].map((f) => {
+                  const displayPath =
+                    dir === "(root)" ? f.path : f.path.slice(dir.length + 1);
+                  return (
+                    <Link
+                      key={f.path}
+                      to={`/workspace/${workspace.id}/file/${encodeURIComponent(f.path)}`}
+                      className="flex items-center gap-3 px-4 py-2 hover:bg-primary/5 transition-colors group"
+                    >
+                      <File size={12} className="text-muted-foreground/50 shrink-0" />
+                      <span className="text-sm flex-1 truncate">{displayPath}</span>
+                      <span className="text-[10px] text-muted-foreground hidden sm:block">{formatSize(f.size)}</span>
+                      <LanguageBadge lang={f.language} />
+                      <span className="text-[10px] text-muted-foreground hidden md:flex items-center gap-0.5">
+                        <Clock size={9} />
+                        {timeAgo(f.mtime)}
                       </span>
-                    </div>
-                  )}
-                  {groups[dir].map((f) => {
-                    const displayPath =
-                      dir === "(root)"
-                        ? f.path
-                        : f.path.slice(dir.length + 1);
-                    return (
-                      <Link
-                        key={f.path}
-                        to={`/workspace/${workspace.id}/file/${encodeURIComponent(f.path)}`}
-                        className="flex items-center gap-3 px-4 py-2.5 hover:bg-accent/40 transition-colors group"
-                      >
-                        <File
-                          size={13}
-                          className="text-muted-foreground shrink-0"
-                        />
-                        <span className="text-sm flex-1 truncate">
-                          {displayPath}
-                        </span>
-                        <span className="text-xs text-muted-foreground hidden sm:block">
-                          {formatSize(f.size)}
-                        </span>
-                        <LanguageBadge lang={f.language} />
-                        <span className="text-[10px] text-muted-foreground hidden md:block">
-                          <Clock size={9} className="inline mr-0.5" />
-                          {timeAgo(f.mtime)}
-                        </span>
-                        <ChevronRight
-                          size={12}
-                          className="text-muted-foreground group-hover:text-foreground transition-colors"
-                        />
-                      </Link>
-                    );
-                  })}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </main>
-
-      <footer className="border-t border-border mt-16">
-        <div className="max-w-5xl mx-auto px-6 py-4 text-xs text-muted-foreground">
-          FlashBob — Live mirror for{" "}
-          <span className="font-medium text-foreground">{workspace.name}</span>
-        </div>
-      </footer>
+                      <ChevronRight size={11} className="text-muted-foreground/30 group-hover:text-muted-foreground transition-colors shrink-0" />
+                    </Link>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
