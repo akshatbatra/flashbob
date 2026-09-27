@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "flashbob-mirror": {
+      "url": "https://flashbob.fly.dev/mcp"
+    }
+  }
+}

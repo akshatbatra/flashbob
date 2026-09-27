@@ -31,7 +31,7 @@ async function handleMcp(request: Request): Promise<Response> {
   }
 
   const transport = new WebStandardStreamableHTTPServerTransport({
-    sessionIdGenerator: () => crypto.randomUUID(),
+    sessionIdGenerator: undefined,
   });
 
   const server = createMcpServer();

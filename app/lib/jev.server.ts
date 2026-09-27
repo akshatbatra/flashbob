@@ -10,7 +10,6 @@
 
 import type { MirroredFile, JevRelevance } from "./store.server";
 
-const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY ?? "";
 const JEV_MODEL = "typesafe/jev-1.13";
 const DECISIONS_ENDPOINT = "https://openrouter.ai/api/alpha/decisions";
 
@@ -44,7 +43,11 @@ export async function classifyFile(
     return cached;
   }
 
+  const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY ?? "";
+  console.log("[jev] key present:", !!OPENROUTER_API_KEY, "task:", task.slice(0, 40));
+
   if (!OPENROUTER_API_KEY) {
+    console.log("[jev] no key — returning fallback");
     // No key configured — return a neutral result so the app still works
     const fallback: JevRelevance = {
       task,
@@ -57,8 +60,12 @@ export async function classifyFile(
     return fallback;
   }
 
-  // Truncate content to keep tokens reasonable (first 2 000 chars)
-  const preview = file.content.slice(0, 2000);
+  // Truncate content to keep tokens reasonable (first 2 000 chars).
+  // Strip null bytes and other non-printable control characters that some
+  // API endpoints reject (keep tab, newline, carriage-return).
+  const preview = file.content
+    .slice(0, 2000)
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "");
 
   const body = {
     model: JEV_MODEL,
@@ -67,7 +74,7 @@ export async function classifyFile(
       file_path: file.path,
       file_language: file.language,
       file_preview: preview,
-      file_size_chars: file.size,
+      file_size_chars: String(file.size),
     },
     questions: {
       is_relevant: {
@@ -92,6 +99,7 @@ export async function classifyFile(
     },
   };
 
+  console.log("[jev] calling API for", file.path);
   const res = await fetch(DECISIONS_ENDPOINT, {
     method: "POST",
     headers: {
@@ -103,8 +111,10 @@ export async function classifyFile(
 
   if (!res.ok) {
     const text = await res.text();
+    console.error("[jev] API error", res.status, text);
     throw new Error(`Jev API error ${res.status}: ${text}`);
   }
+  console.log("[jev] API ok for", file.path);
 
   const data: JevDecisionResponse = await res.json();
   const relevance: JevRelevance = {

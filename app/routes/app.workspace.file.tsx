@@ -1,4 +1,4 @@
-import type { Route } from "./+types/workspace.file";
+import type { Route } from "./+types/app.workspace.file";
 import { Link, useLoaderData, useFetcher, useRevalidator } from "react-router";
 import { getWorkspace } from "~/lib/store.server";
 import { classifyFile } from "~/lib/jev.server";
@@ -53,7 +53,7 @@ export async function action({ request, params }: Route.ActionArgs) {
   if (!file) return Response.json({ error: "File not found" }, { status: 404 });
 
   const formData = await request.formData();
-  const task = formData.get("task") as string;
+  const task = formData.get("task") as string | null;
   if (!task?.trim()) {
     return Response.json({ error: "Task is required" }, { status: 400 });
   }
@@ -264,12 +264,12 @@ export default function WorkspaceFile() {
     <div className="h-screen flex flex-col bg-background overflow-hidden">
       {/* Top bar */}
       <header className="h-11 shrink-0 border-b border-border bg-card flex items-center px-4 gap-1.5 text-xs text-muted-foreground overflow-x-auto">
-        <Link to="/" className="hover:text-foreground transition-colors flex items-center gap-1 shrink-0">
+        <Link to="/app" className="hover:text-foreground transition-colors flex items-center gap-1 shrink-0">
           <img src="/flashbob-icon.png" alt="FlashBob" className="w-4 h-4 object-contain" />
           FlashBob
         </Link>
         <ChevronRight size={10} className="shrink-0 text-muted-foreground/40" />
-        <Link to={`/workspace/${workspace.id}`} className="hover:text-foreground transition-colors shrink-0">
+        <Link to={`/app/workspace/${workspace.id}`} className="hover:text-foreground transition-colors shrink-0">
           {workspace.name}
         </Link>
         <ChevronRight size={10} className="shrink-0 text-muted-foreground/40" />
@@ -291,7 +291,7 @@ export default function WorkspaceFile() {
             {timeAgo(file.mtime)}
           </span>
           <Link
-            to={`/workspace/${workspace.id}`}
+            to={`/app/workspace/${workspace.id}`}
             className="text-muted-foreground hover:text-foreground transition-colors"
           >
             <ArrowLeft size={14} />

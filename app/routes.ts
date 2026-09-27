@@ -1,10 +1,13 @@
 import { type RouteConfig, index, route } from "@react-router/dev/routes";
 
 export default [
-  // UI routes
+  // Landing page
   index("routes/home.tsx"),
-  route("workspace/:id", "routes/workspace.tsx"),
-  route("workspace/:id/file/*", "routes/workspace.file.tsx"),
+
+  // App UI (under /app)
+  route("app", "routes/app.home.tsx"),
+  route("app/workspace/:id", "routes/app.workspace.tsx"),
+  route("app/workspace/:id/file/*", "routes/app.workspace.file.tsx"),
 
   // Sync API
   route("api/sync", "routes/api.sync.ts"),

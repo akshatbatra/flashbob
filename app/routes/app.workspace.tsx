@@ -1,4 +1,4 @@
-import type { Route } from "./+types/workspace";
+import type { Route } from "./+types/app.workspace";
 import { Link, useLoaderData, useRevalidator } from "react-router";
 import { getWorkspace } from "~/lib/store.server";
 import { Badge } from "~/components/ui/badge";
@@ -146,11 +146,11 @@ export default function WorkspacePage() {
     <div className="h-screen flex flex-col bg-background overflow-hidden">
       {/* Top bar */}
       <header className="h-11 shrink-0 border-b border-border bg-card flex items-center px-4 gap-2">
-        <Link to="/" className="text-muted-foreground hover:text-foreground transition-colors mr-1">
+        <Link to="/app" className="text-muted-foreground hover:text-foreground transition-colors mr-1">
           <ArrowLeft size={15} />
         </Link>
         <img src="/flashbob-icon.png" alt="FlashBob" className="w-4 h-4 object-contain" />
-        <Link to="/" className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+        <Link to="/app" className="text-xs text-muted-foreground hover:text-foreground transition-colors">
           FlashBob
         </Link>
         <ChevronRight size={11} className="text-muted-foreground/40" />
@@ -220,7 +220,7 @@ export default function WorkspacePage() {
                   return (
                     <Link
                       key={f.path}
-                      to={`/workspace/${workspace.id}/file/${encodeURIComponent(f.path)}`}
+                      to={`/app/workspace/${workspace.id}/file/${encodeURIComponent(f.path)}`}
                       className="flex items-center gap-3 px-4 py-2 hover:bg-primary/5 transition-colors group"
                     >
                       <File size={12} className="text-muted-foreground/50 shrink-0" />
